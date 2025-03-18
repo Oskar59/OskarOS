@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OskarOS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Barre supérieure -->
+    <div class="top-bar">
+        <div class="window-title">Accueil</div>
+        <div class="os-title">OskarOS</div>
+        <div class="clock" id="clock">00:00:00</div>
+    </div>
+
+    <!-- Zone principale -->
+    <div class="main-content" id="main-content">
+        <!-- Les fenêtres seront ajoutées ici dynamiquement -->
+    </div>
+
+    <!-- Barre d'icônes (dock) -->
+    <div class="dock">
+        <div class="dock-icon" data-window="home">
+            <i class="fas fa-home"></i>
+        </div>
+        <div class="dock-icon" data-window="courses">
+            <i class="fas fa-graduation-cap"></i>
+        </div>
+        <div class="dock-icon" data-window="projects">
+            <i class="fas fa-project-diagram"></i>
+        </div>
+        <div class="dock-icon" data-window="profile">
+            <i class="fas fa-user"></i>
+        </div>
+        <div class="dock-icon" data-window="alternance">
+            <i class="fas fa-briefcase"></i>
+        </div>
+        <div class="dock-icon" data-window="settings">
+            <i class="fas fa-cog"></i>
+        </div>
+    </div>
+
+    <script src="js/notificationManager.js"></script>
+    <script src="js/windowManager.js"></script>
+    <script src="js/contextMenu.js"></script>
+    <script src="js/themeManager.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> 
