@@ -7,21 +7,74 @@ class WindowManager {
         this.setupDockDragAndDrop();
         this.notificationManager = new NotificationManager();
         
+        // Utiliser un debounce pour la sauvegarde
+        this.saveWindowStatesDebounced = this.debounce(() => this.saveWindowStates(), 1000);
+        
         // Restaurer l'état des fenêtres au démarrage
         this.loadWindowStates();
         
-        // Sauvegarder l'état périodiquement
-        setInterval(() => this.saveWindowStates(), 5000);
-        
-        // Écouter les changements de fond d'écran
-        document.addEventListener('wallpaperSettingsChanged', (e) => {
+        // Écouter les changements de fond d'écran avec un throttle
+        document.addEventListener('wallpaperSettingsChanged', this.throttle((e) => {
             if (e.detail.url) {
-                document.body.style.background = `url(${e.detail.url}) center/cover no-repeat`;
-                localStorage.setItem('wallpaper', e.detail.url);
+                this.setWallpaper(e.detail.url);
+                this.saveToLocalStorage('wallpaper', e.detail.url);
             } else if (e.detail.wallpaper) {
                 this.setWallpaper(e.detail.wallpaper);
             }
-        });
+        }, 100));
+    }
+
+    // Fonction utilitaire pour le debounce
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Fonction utilitaire pour le throttle
+    throttle(func, limit) {
+        let inThrottle;
+        return function executedFunction(...args) {
+            if (!inThrottle) {
+                func(...args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    }
+
+    // Fonction sécurisée pour sauvegarder dans le localStorage
+    saveToLocalStorage(key, value) {
+        try {
+            const serializedValue = JSON.stringify(value);
+            localStorage.setItem(key, serializedValue);
+        } catch (error) {
+            console.error('Erreur lors de la sauvegarde dans le localStorage:', error);
+        }
+    }
+
+    // Fonction sécurisée pour lire depuis le localStorage
+    getFromLocalStorage(key) {
+        try {
+            const item = localStorage.getItem(key);
+            return item ? JSON.parse(item) : null;
+        } catch (error) {
+            console.error('Erreur lors de la lecture du localStorage:', error);
+            return null;
+        }
+    }
+
+    // Fonction sécurisée pour nettoyer le HTML
+    sanitizeHTML(html) {
+        const div = document.createElement('div');
+        div.textContent = html;
+        return div.innerHTML;
     }
 
     setupEventListeners() {
@@ -797,55 +850,35 @@ class WindowManager {
     }
 
     saveWindowStates() {
-        const windowStates = {};
+        const states = {};
         this.windows.forEach((window, type) => {
-            const rect = window.getBoundingClientRect();
-            windowStates[type] = {
-                isOpen: true,
-                isMinimized: window.classList.contains('minimized'),
-                isMaximized: window.classList.contains('maximized'),
-                position: {
-                    x: parseInt(window.style.left) || rect.left,
-                    y: parseInt(window.style.top) || rect.top
-                },
-                size: {
-                    width: parseInt(window.style.width) || rect.width,
-                    height: parseInt(window.style.height) || rect.height
-                },
-                zIndex: window.style.zIndex
-            };
+            if (!window.classList.contains('minimized')) {
+                const rect = window.getBoundingClientRect();
+                states[type] = {
+                    position: {
+                        x: rect.left,
+                        y: rect.top
+                    },
+                    size: {
+                        width: rect.width,
+                        height: rect.height
+                    }
+                };
+            }
         });
-        localStorage.setItem('windowStates', JSON.stringify(windowStates));
+        this.saveToLocalStorage('windowStates', states);
     }
 
     loadWindowStates() {
-        const savedStates = localStorage.getItem('windowStates');
-        if (savedStates) {
-            const states = JSON.parse(savedStates);
+        const states = this.getFromLocalStorage('windowStates');
+        if (states) {
             Object.entries(states).forEach(([type, state]) => {
-                if (state.isOpen) {
-                    const window = this.createWindow(type, this.getWindowTitle(type));
-                    
-                    // Restaurer la position et la taille
-                    if (!state.isMaximized) {
-                        window.style.left = `${state.position.x}px`;
-                        window.style.top = `${state.position.y}px`;
-                        window.style.width = `${state.size.width}px`;
-                        window.style.height = `${state.size.height}px`;
-                    }
-                    
-                    // Restaurer l'état
-                    if (state.isMaximized) {
-                        this.maximizeWindow(window);
-                    }
-                    if (state.isMinimized) {
-                        this.minimizeWindow(window);
-                    }
-                    
-                    // Restaurer le z-index
-                    if (state.zIndex) {
-                        window.style.zIndex = state.zIndex;
-                    }
+                const window = this.windows.get(type);
+                if (window) {
+                    window.style.left = `${state.position.x}px`;
+                    window.style.top = `${state.position.y}px`;
+                    window.style.width = `${state.size.width}px`;
+                    window.style.height = `${state.size.height}px`;
                 }
             });
         }
